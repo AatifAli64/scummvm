@@ -23,12 +23,24 @@
 #define NGI_DETECTION_H
 
 #include "engines/advancedDetector.h"
+#include "engines/metaengine.h"
+#include "backends/keymapper/keymapper.h"
 
 namespace NGI {
 
 enum NGIGameId {
 	GID_FULLPIPE = 1,
 	GID_MDREAM
+};
+
+class AdvancedMetaEngine : public MetaEngine {
+public:
+	virtual Common::KeymapArray initKeymaps(const char *target) const;
+};
+
+class NGIMetaEngine : public AdvancedMetaEngine {
+public:
+	Common::KeymapArray initKeymaps(const char *target) const override;
 };
 
 struct NGIGameDescription {

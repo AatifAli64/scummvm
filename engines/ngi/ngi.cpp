@@ -336,6 +336,73 @@ Common::Error NGIEngine::run() {
 	return Common::kNoError;
 }
 
+void NGIEngine::handleCustomAction(int action, bool isPress) {
+	ExCommand *ex = nullptr;
+
+	switch (action) {
+
+	case NGI::kActionPause:
+		if (_gamePaused) {
+			if (_modalObject && _modalObject->init(42))
+				_modalObject->update();
+			else
+				deleteModalObject();
+		} else {
+			ex = new ExCommand(0, 17, 36, 0, 0, 0, 1, 0, 0, 0);
+			ex->_param = 32; // "Pause" keycode
+		}
+		break;
+
+	case NGI::kActionResume:
+		_gamePaused = false;
+		_flgGameIsRunning = true;
+		break;
+
+	case NGI::kActionQuit:
+		quitGame();
+		break;
+
+	case NGI::kActionLeftClick:
+		if (isPress) {
+			ex = new ExCommand(0, 17, 29, _mouseScreenPos.x, _mouseScreenPos.y, 0, 1, 0, 0, 0);
+			ex->_sceneClickX = _sceneRect.left + ex->_x;
+			ex->_sceneClickY = _sceneRect.top + ex->_y;
+			ex->_param = getGameLoaderInventory()->getSelectedItemId();
+			_lastInputTicks = _updateTicks;
+		} else if (!_inputArFlag && (_updateTicks - _lastButtonUpTicks) >= 2) {
+			ex = new ExCommand(0, 17, 30, 0, 0, 0, 1, 0, 0, 0);
+			ex->_excFlags |= 3;
+			_lastButtonUpTicks = _updateTicks;
+			ex->handle();
+			ex = nullptr; // already handled
+		}
+		break;
+
+	case NGI::kActionRightClick:
+		ex = new ExCommand(0, 17, 107, _mouseScreenPos.x, _mouseScreenPos.y, 0, 1, 0, 0, 0);
+		ex->_sceneClickX = _sceneRect.left + ex->_x;
+		ex->_sceneClickY = _sceneRect.top + ex->_y;
+		_lastInputTicks = _updateTicks;
+		break;
+
+	default:
+		if (action >= NGI::kActionFirstCustom) {
+			ex = new ExCommand(0, 17, 36, 0, 0, 0, 1, 0, 0, 0);
+			ex->_param = action;
+		}
+		break;
+	}
+
+	if (ex) {
+		ex->_excFlags |= 3;
+		ex->handle();
+	}
+}
+
+bool NGIEngine::canProcessInput() const {
+	return !_inputArFlag && (_updateTicks - _lastInputTicks) >= 2;
+}
+
 void NGIEngine::updateEvents() {
 	Common::Event event;
 	Common::EventManager *eventMan = _system->getEventManager();
@@ -343,51 +410,11 @@ void NGIEngine::updateEvents() {
 
 	while (eventMan->pollEvent(event)) {
 		switch (event.type) {
-		case Common::EVENT_KEYDOWN:
-			_keyState = event.kbd.keycode;
-
-			switch (event.kbd.keycode) {
-			case Common::KEYCODE_SPACE:
-				if (_gamePaused) {
-					if (_modalObject) {
-						if (_modalObject->init(42)) {
-							_modalObject->update();
-						} else {
-							deleteModalObject();
-						}
-					} else {
-						_gameLoader->updateSystems(42);
-					}
-					return;
-				}
-
-				ex = new ExCommand(0, 17, 36, 0, 0, 0, 1, 0, 0, 0);
-				ex->_param = 32;
-				ex->_excFlags |= 3;
-				ex->handle();
-				break;
-			case Common::KEYCODE_s:
-				if (_gamePaused) {
-					_gamePaused = 0;
-					_flgGameIsRunning = true;
-					return;
-				}
-
-				ex = new ExCommand(0, 17, 36, 0, 0, 0, 1, 0, 0, 0);
-				ex->_param = event.kbd.keycode;
-				ex->_excFlags |= 3;
-				ex->handle();
-				break;
-			case Common::KEYCODE_q:
-				return;
-				break;
-			default:
-				ex = new ExCommand(0, 17, 36, 0, 0, 0, 1, 0, 0, 0);
-				ex->_param = event.kbd.keycode;
-				ex->_excFlags |= 3;
-				ex->handle();
-				break;
-			}
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+			handleCustomAction(event.customType, true); // true = press
+			break;
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_END:
+			handleCustomAction(event.customType, false); // false = release
 			break;
 		case Common::EVENT_KEYUP:
 			if (!_inputArFlag) {
@@ -445,7 +472,7 @@ void NGIEngine::updateEvents() {
 	}
 
 	// pollEvent() is implemented only for video player. So skip it.
-	//if (event.kbd.keycode == MSG_SC11_SHOWSWING && _modalObject) {
+	// if (event.kbd.keycode == MSG_SC11_SHOWSWING && _modalObject) {
 	//	_modalObject->pollEvent();
 	//}
 }

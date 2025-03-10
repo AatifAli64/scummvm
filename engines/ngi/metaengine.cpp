@@ -30,6 +30,12 @@
 #include "ngi/detection.h"
 #include "ngi/gameloader.h"
 
+#include "backends/keymapper/action.h"
+#include "backends/keymapper/keymapper.h"
+#include "backends/keymapper/standard-actions.h"
+#include "common/translation.h"
+#include "common/system.h"
+
 namespace NGI {
 
 uint32 NGIEngine::getFeatures() const {
@@ -65,7 +71,73 @@ public:
 	int getMaximumSaveSlot() const override { return 99; }
 
 	Common::Error createInstance(OSystem *syst, Engine **engine, const NGI::NGIGameDescription *desc) const override;
+	Common::KeymapArray initKeymaps(const char *target) const override;
 };
+
+Common::KeymapArray NGIMetaEngine::initKeymaps(const char *target) const {
+	using namespace Common;
+	using namespace NGI;
+
+	Keymap *engineKeyMap = new Keymap(Keymap::kKeymapTypeGame, "ngi-default", _("Default NGI keymap"));
+
+	// Left Click (Standard Action)
+	Action *act = new Action(kStandardActionLeftClick, _("Left Click"));
+	act->setCustomEngineActionEvent(NGI::kActionLeftClick);
+	act->addDefaultInputMapping("MOUSE_LEFT");
+	act->addDefaultInputMapping("JOY_BUTTON0");
+	engineKeyMap->addAction(act);
+
+	// Right Click (Standard Action)
+	act = new Action(kStandardActionRightClick, _("Right Click"));
+	act->setCustomEngineActionEvent(NGI::kActionRightClick);
+	act->addDefaultInputMapping("MOUSE_RIGHT");
+	act->addDefaultInputMapping("JOY_BUTTON1");
+	engineKeyMap->addAction(act);
+
+	// Pause Game
+	act = new Action("PAUSE", _("Pause Game"));
+	act->setCustomEngineActionEvent(kActionPause);
+	act->addDefaultInputMapping("SPACE");
+	act->addDefaultInputMapping("JOY_BUTTON9");
+	engineKeyMap->addAction(act);
+
+	// Quit Game
+	act = new Action("QUIT", _("Quit Game"));
+	act->setCustomEngineActionEvent(kActionQuit);
+	act->addDefaultInputMapping("q");
+	act->addDefaultInputMapping("JOY_BUTTON8");
+	engineKeyMap->addAction(act);
+
+	// Move Up
+	act = new Action("MOVE_UP", _("Move Up"));
+	act->setCustomEngineActionEvent(kActionMoveUp);
+	act->addDefaultInputMapping("UP");
+	act->addDefaultInputMapping("JOY_UP");
+	engineKeyMap->addAction(act);
+
+	// Move Down
+	act = new Action("MOVE_DOWN", _("Move Down"));
+	act->setCustomEngineActionEvent(kActionMoveDown);
+	act->addDefaultInputMapping("DOWN");
+	act->addDefaultInputMapping("JOY_DOWN");
+	engineKeyMap->addAction(act);
+
+	// Move Left
+	act = new Action("MOVE_LEFT", _("Move Left"));
+	act->setCustomEngineActionEvent(kActionMoveLeft);
+	act->addDefaultInputMapping("LEFT");
+	act->addDefaultInputMapping("JOY_LEFT");
+	engineKeyMap->addAction(act);
+
+	// Move Right
+	act = new Action("MOVE_RIGHT", _("Move Right"));
+	act->setCustomEngineActionEvent(kActionMoveRight);
+	act->addDefaultInputMapping("RIGHT");
+	act->addDefaultInputMapping("JOY_RIGHT");
+	engineKeyMap->addAction(act);
+
+	return Keymap::arrayOf(engineKeyMap);
+}
 
 bool NGIMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return checkExtendedSaves(f) || (f == kSupportsLoadingDuringStartup);

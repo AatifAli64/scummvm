@@ -35,11 +35,33 @@
 #include "engines/engine.h"
 #include "ngi/console.h"
 
+#include "backends/keymapper/action.h"
+#include "backends/keymapper/keymapper.h"
+#include "backends/keymapper/standard-actions.h"
+
 namespace Audio {
 class SoundHandle;
 }
 
 namespace NGI {
+
+enum NGIAction {
+	kActionLeftClick = 1,
+	kActionRightClick = 2,
+
+	kActionPause = 100,
+	kActionResume,
+	kActionQuit,
+	kActionSkip,
+
+	kActionMoveUp,
+	kActionMoveDown,
+	kActionMoveLeft,
+	kActionMoveRight,
+
+	kActionFirstCustom = 1000,
+	kActionMax = kActionMoveRight + 1
+};
 
 enum {
 	kDebugPathfinding = 1,
@@ -375,6 +397,10 @@ public:
 	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return true; }
 	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override { return _isSaveAllowed; }
 	bool hasFeature(EngineFeature f) const override;
+
+private:
+	void handleCustomAction(int action, bool isPress);
+	bool canProcessInput() const;
 
 };
 
